@@ -21,9 +21,13 @@ end
 
 defmodule PedidoEnricher do
   def enriquecer_secuencial(pedido) do
-    cliente = ClienteService.fetch(pedido.cliente_id)
-    envio = EnvioService.cotizar(pedido.producto_id)
-    inventario = InventarioService.stock(pedido.producto_id)
+    task_cliente = Task.async(fn -> ClienteService.fetch(pedido.cliente_id) end)
+    task_envio = Task.async(fn -> EnvioService.cotizar(pedido.producto_id) end)
+    task_inventario = Task.async(fn -> InventarioService.stock(pedido.producto_id) end)
+
+    cliente = Task.await(task_cliente)
+    envio = Task.await(task_envio)
+    inventario = Task.await(task_inventario)
 
     %{
       id: pedido.id,
@@ -40,5 +44,6 @@ pedidos = [
   %{id: 3, cliente_id: 103, producto_id: 503}
 ]
 
-resultado = Enum.map(pedidos, fn pedido -> PedidoEnricher.enriquecer_secuencial(pedido) end)
-#resultado = Enum.map(pedido, &PedidoEnricher.enriquecer_secuencial/1)
+#resultado = Enum.map(pedidos, fn pedido -> PedidoEnricher.enriquecer_secuencial(pedido) end)
+resultado = Enum.map(pedidos, &PedidoEnricher.enriquecer_secuencial/1)
+IO.inspect(resultado)
